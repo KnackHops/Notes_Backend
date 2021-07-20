@@ -1,6 +1,6 @@
 virtTest/
 venv/
-
+.idea
 *.pyc
 __pycache__/
 
