@@ -3,6 +3,7 @@ from flask import Flask
 
 
 def create_app():
+    # will work on login first
     app = Flask(__name__, instance_relative_config=True)
 
     try:
