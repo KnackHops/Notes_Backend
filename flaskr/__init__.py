@@ -11,11 +11,10 @@ def create_app():
     except OSError:
         pass
 
-    from . import login
     from . import notes
     from . import user
 
-    for parent in (login, notes, user):
+    for parent in (notes, user):
         app.register_blueprint(parent.bp)
 
     return app
