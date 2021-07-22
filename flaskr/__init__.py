@@ -1,5 +1,8 @@
 import os
-from flask import Flask
+# import click
+from flask import (
+    Flask, url_for
+)
 
 
 def create_app():
@@ -16,5 +19,16 @@ def create_app():
 
     for parent in (notes, user):
         app.register_blueprint(parent.bp)
+
+    with app.test_request_context():
+        c = app.test_client()
+        req = c.post(
+            url_for('user.register'),
+            content_type='application/json',
+            json={
+                'username': 'affafu',
+                'password': 'affafuPass'
+            })
+        print(req.data)
 
     return app
