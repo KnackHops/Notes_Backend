@@ -23,12 +23,13 @@ def create_app():
     with app.test_request_context():
         c = app.test_client()
         req = c.post(
-            url_for('user.register'),
+            url_for('user.login'),
             content_type='application/json',
             json={
                 'username': 'affafu',
                 'password': 'affafuPass'
-            })
+        })
         print(req.data)
+        print(req.status)
 
     return app
