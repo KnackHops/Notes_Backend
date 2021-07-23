@@ -5,6 +5,7 @@ import requests
 urlLogin = 'https://api.jsonbin.io/v3/b/60ee82b3c1256a01cb6ec53e'
 urlUser = 'https://api.jsonbin.io/v3/b/60ee8281c1256a01cb6ec524'
 urlNote = 'https://api.jsonbin.io/v3/b/60ee82530cd33f7437c7f1e0'
+urlProfile = 'https://api.jsonbin.io/v3/b/60fad285a263d14a297ac102'
 
 
 def get_db(whichdb):
@@ -15,6 +16,8 @@ def get_db(whichdb):
         url = urlLogin
     elif whichdb == 'user':
         url = urlUser
+    elif whichdb == 'profile':
+        url = urlProfile
     else:
         url = urlNote
 
@@ -27,9 +30,7 @@ def get_db(whichdb):
 
 
 def get_data(url, headers):
-    req = requests.get(url=(url + '/latest'), headers=headers)
-
-    click.echo(req)
+    req = requests.get(url + '/latest', headers=headers)
 
     return req.text
 
