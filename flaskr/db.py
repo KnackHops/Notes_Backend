@@ -35,8 +35,16 @@ def get_data(url, headers):
     return req.text
 
 
-def update_data():
-    pass
+def update_data(url, headers, data, new_data):
+
+    data['record'].append(new_data)
+    print("stat anew", data['record'][0])
+
+    req = requests.put(url, json=data, headers=headers)
+
+    print(req.text)
+
+    return req.text
 
 
 def close_db(db, whichdb):
