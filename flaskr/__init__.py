@@ -28,7 +28,9 @@ def create_app():
             json={
                 'username': 'affafu',
                 'password': 'affafuPass'
-        })
+            }
+        )
+
         print(req.data)
         print(req.status)
 
