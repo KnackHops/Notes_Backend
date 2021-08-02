@@ -35,16 +35,17 @@ def get_data(url, headers):
     return req.text
 
 
-def update_data(url, headers, data, new_data):
+def update_data(url, headers, data):
 
-    data['record'].append(new_data)
-    print("stat anew", data['record'][0])
+    print('meta: ', url, headers)
+    print('start anew', data)
 
     req = requests.put(url, json=data, headers=headers)
 
-    print(req.text)
-
-    return req.text
+    if req.status_code == 200:
+        return True
+    else:
+        return False
 
 
 def close_db(db, whichdb):
