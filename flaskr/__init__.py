@@ -23,7 +23,27 @@ def create_app():
 
     with app.test_request_context():
         pass
-        # c = app.test_client()
+        c = app.test_client()
+
+        req = c.post(
+            url_for('user.login'),
+            content_type='application/json',
+            json={
+                'username': 'affafu',
+                'password': 'affafuPass'
+            }
+        )
+
+        req_2 = c.post(
+            url_for('user.profile_save'),
+            content_type='application/json',
+            json={
+                'username': 'affafu',
+                'pfp': "newPFP",
+                'pfpLast': "yip"
+            }
+        )
+
         # req = c.post(
         #     url_for('user.register'),
         #     content_type='application/json',
@@ -54,9 +74,11 @@ def create_app():
         #         }
         #     }
         # )
-        #
+
         # print(req.data)
         # print(req.status)
+        print(req_2.data)
+        print(req_2.status)
 
     @click.command('up-db-ps')
     def update_pass():

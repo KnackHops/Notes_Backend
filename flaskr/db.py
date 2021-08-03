@@ -37,15 +37,16 @@ def get_data(url, headers):
 
 def update_data(url, headers, data):
 
-    print('meta: ', url, headers)
-    print('start anew', data)
+    click.echo(f'meta-url: ${url}, meta-headers: ${headers}')
+    click.echo(f'data: ${data}')
+    headers['X-Bin-Versioning'] = 'false'
 
-    req = requests.put(url, json=data, headers=headers)
-
-    if req.status_code == 200:
-        return True
-    else:
-        return False
+    # req = requests.put(url, json=data, headers=headers)
+    #
+    # if req.status_code == 200:
+    #     return True
+    # else:
+    #     return False
 
 
 def close_db(db, whichdb):
