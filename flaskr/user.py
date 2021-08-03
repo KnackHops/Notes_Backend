@@ -1,3 +1,4 @@
+import requests
 from flask import (
     Blueprint, request, make_response
 )
@@ -6,6 +7,7 @@ import json
 from flaskr.db import (
     get_db, get_data, update_data
 )
+from flaskr.static.constant_var import HASH_FORMAT
 from werkzeug.security import (
     generate_password_hash, check_password_hash
 )
@@ -41,7 +43,7 @@ def register():
         error_code = None
         user = None
 
-        click.echo(login_data['data']['record'])
+        # click.echo(login_data['data']['record'])
         if login_data is not None:
             user = find_user(login_data['data'], request.json['login_data']['username'])
         else:
@@ -79,11 +81,19 @@ def register():
                 for each_url in list_db_metadata:
                     each_url['headers']['Content-Type'] = 'application/json'
 
-                    # click.echo(request.json[list_request_var[x]])
+                    oldpass = request.json[list_request_var[x]]['password']
 
-                    list_db[x].append(request.json[list_request_var[x]])
+                    newuser = request.json[list_request_var[x]]
+                    if x == 0:
+                        newhash = generate_password_hash(password=oldpass, salt_length=16)
+                        newuser['salt'] = newhash[20:38]
+                        newuser['password'] = newhash[38:]
+
+                    list_db[x].append(newuser)
+                    click.echo(list_db[x])
 
                     response_update.append(
+                        # this will register user
                         update_data(**each_url, data=list_db[x])
                     )
                     x = x + 1
@@ -94,7 +104,7 @@ def register():
                         error_code = 500
                         # reset the changes done by removing the last item
 
-                if error is not None:
+                if not error:
                     return 'register success!'
 
             else:
@@ -124,7 +134,8 @@ def login():
 
         if error is None:
             if user is not None:
-                if user['password'] == request.json['password']:
+                newhash = f'{HASH_FORMAT}{user["salt"]}{user["password"]}'
+                if check_password_hash(newhash, request.json['password']):
                     profile_data = local_data_get('profile')
                     user = find_user(profile_data['data'], request.json['username'])
 
@@ -145,29 +156,74 @@ def login():
     return 'success'
 
 
+@bp.route('/profilesave', methods=('GET', 'POST'))
+def profile_save():
+    if request.method == 'POST':
+        user_db = local_data_get('user')
+        user_data = user_db['data']['record']
+        user_meta = user_db['url_meta']
+        profile_db = local_data_get('profile')
+        profile_data = profile_db['data']['record']
+        profile_meta = profile_db['url_meta']
+
+        new_user = []
+
+        for user in user_data:
+            user_update = user
+            if user['username'] == request.json['username']:
+                if 'pfp' in request.json:
+                    user_update['pfp'] = request.json['pfp']
+                if 'nickname' in request.json:
+                    user_update['nickname'] = request.json['nickname']
+                if 'mobile' in request.json:
+                    user_update['mobile'] = request.json['mobile']
+
+            new_user.append(user_update)
+
+        new_profile = []
+
+        for profile in profile_data:
+            profile_update = profile
+            if profile['username'] == request.json['username']:
+                if 'pfpLast' in request.json:
+                    profile_update['pfpLast'] = request.json['pfpLast']
+                if 'nickLast' in request.json:
+                    profile_update['nickLast'] = request.json['nickLast']
+
+            new_profile.append(profile_update)
+
+        update_data(**user_meta, data=new_user)
+        update_data(**profile_meta, data=new_profile)
+
+    return 'none'
+
+
 @bp.after_request
 def after_request_func(response):
     response.headers['Content-Type'] = 'application/json'
-    click.echo("yep")
     return response
 
 
 def update_db_password():
     pass
-    # db = local_data_get('login')
+    # db = local_data_get('profile')
     # login_data = db['data']['record']
-    #
+
     # new_users = []
-    #
     # for user in login_data:
-    #     new_pass = generate_password_hash(user['password'], salt_length=16)
-    #     new_users.append({
+    #     # click.echo(f'{HASH_FORMAT}{user["password"][20:38]}{user["password"][38:]}')
+    #     # click.echo(user['password'])
+    #     new_user = {
     #         'username': user['username'],
-    #         'password': new_pass
-    #     })
+    #         'password': user['password'][38:],
+    #         'salt': user['password'][20:38]
+    #     }
+    #     new_users.append(new_user)
 
-    # click.echo(login_data)
     # click.echo(new_users)
-    # click.echo(db['url_meta'])
-
     # update_data(db['url_meta']['url'], db['url_meta']['headers'], new_users)
+    # click.echo(db['url_meta']['headers'])
+    # url = db['url_meta']['url'] + '/versions'
+    # headers = db['url_meta']['headers']
+    # headers['X-Preserve-Latest'] = 'true'
+    # req = requests.delete(url, json=None, headers=headers)
