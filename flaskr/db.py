@@ -1,4 +1,5 @@
 import click
+import json
 import requests
 
 
@@ -6,6 +7,18 @@ urlLogin = 'https://api.jsonbin.io/v3/b/60ee82b3c1256a01cb6ec53e'
 urlUser = 'https://api.jsonbin.io/v3/b/60ee8281c1256a01cb6ec524'
 urlNote = 'https://api.jsonbin.io/v3/b/60ee82530cd33f7437c7f1e0'
 urlProfile = 'https://api.jsonbin.io/v3/b/60fad285a263d14a297ac102'
+
+
+def get_all(which):
+    db = get_db(which)
+    resp = get_data(**db)
+
+    return_var = {
+        'url_meta': db,
+        'data': json.loads(resp)
+    }
+
+    return return_var
 
 
 def get_db(whichdb):
@@ -18,7 +31,7 @@ def get_db(whichdb):
         url = urlUser
     elif whichdb == 'profile':
         url = urlProfile
-    else:
+    elif whichdb == 'note':
         url = urlNote
 
     db = {
