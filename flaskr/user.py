@@ -3,9 +3,8 @@ from flask import (
     Blueprint, request, make_response
 )
 import click
-import json
 from flaskr.db import (
-    get_db, get_data, update_data
+    update_data, get_all
 )
 from flaskr.static.constant_var import HASH_FORMAT
 from werkzeug.security import (
@@ -13,18 +12,6 @@ from werkzeug.security import (
 )
 
 bp = Blueprint('user', __name__, url_prefix='/user')
-
-
-def local_data_get(which):
-    db = get_db(which)
-    resp = get_data(**db)
-
-    return_var = {
-        'url_meta': db,
-        'data': json.loads(resp)
-    }
-
-    return return_var
 
 
 def find_user(data, username):
@@ -38,22 +25,22 @@ def find_user(data, username):
 @bp.route('/register', methods=('GET', 'POST'))
 def register():
     if request.method == 'POST':
-        login_data = local_data_get('login')
+        login_db = get_all('login')
         error = None
         error_code = None
         user = None
 
         # click.echo(login_data['data']['record'])
-        if login_data is not None:
-            user = find_user(login_data['data'], request.json['login_data']['username'])
+        if login_db is not None:
+            user = find_user(login_db['data'], request.json['login_data']['username'])
         else:
             error = 'Error getting data!'
             error_code = 500
 
         if error is None:
             if user is None:
-                user_data = local_data_get('user')
-                profile_data = local_data_get('profile')
+                user_db = get_all('user')
+                profile_db = get_all('profile')
                 # three data are passed as request for register
                 # three of which are named as:
                 #   login_data
@@ -61,14 +48,14 @@ def register():
                 #   profile_data
                 # the same name for the variables each of the database pulled
                 list_db_metadata = [
-                    login_data['url_meta'],
-                    user_data['url_meta'],
-                    profile_data['url_meta']
+                    login_db['url_meta'],
+                    user_db['url_meta'],
+                    profile_db['url_meta']
                 ]
                 list_db = [
-                    login_data['data']['record'],
-                    user_data['data']['record'],
-                    profile_data['data']['record']
+                    login_db['data']['record'],
+                    user_db['data']['record'],
+                    profile_db['data']['record']
                 ]
                 list_request_var = [
                     'login_data',
@@ -121,13 +108,13 @@ def register():
 @bp.route('/login', methods=('GET', 'POST'))
 def login():
     if request.method == 'POST':
-        login_data = local_data_get('login')
+        login_db = get_all('login')
         error = None
         error_code = None
         user = None
 
-        if login_data is not None:
-            user = find_user(login_data['data'], request.json['username'])
+        if login_db is not None:
+            user = find_user(login_db['data'], request.json['username'])
         else:
             error = 'Error getting data!'
             error_code = 500
@@ -136,7 +123,7 @@ def login():
             if user is not None:
                 newhash = f'{HASH_FORMAT}{user["salt"]}{user["password"]}'
                 if check_password_hash(newhash, request.json['password']):
-                    profile_data = local_data_get('profile')
+                    profile_data = get_all('profile')
                     user = find_user(profile_data['data'], request.json['username'])
 
                     resp = make_response((user, 200))
@@ -159,10 +146,10 @@ def login():
 @bp.route('/profilesave', methods=('GET', 'POST'))
 def profile_save():
     if request.method == 'POST':
-        user_db = local_data_get('user')
+        user_db = get_all('user')
         user_data = user_db['data']['record']
         user_meta = user_db['url_meta']
-        profile_db = local_data_get('profile')
+        profile_db = get_all('profile')
         profile_data = profile_db['data']['record']
         profile_meta = profile_db['url_meta']
 
@@ -206,7 +193,7 @@ def after_request_func(response):
 
 def update_db_password():
     pass
-    # db = local_data_get('profile')
+    # db = get_all('profile')
     # login_data = db['data']['record']
 
     # new_users = []

@@ -25,22 +25,43 @@ def create_app():
         pass
         c = app.test_client()
 
-        req = c.post(
-            url_for('user.login'),
-            content_type='application/json',
-            json={
-                'username': 'affafu',
-                'password': 'affafuPass'
-            }
-        )
+        # req = c.post(
+        #     url_for('user.login'),
+        #     content_type='application/json',
+        #     json={
+        #         'username': 'affafu',
+        #         'password': 'affafuPass'
+        #     }
+        # )
 
-        req_2 = c.post(
-            url_for('user.profile_save'),
+        # req_2 = c.post(
+        #     url_for('user.profile_save'),
+        #     content_type='application/json',
+        #     json={
+        #         'username': 'affafu',
+        #         'pfp': "newPFP",
+        #         'pfpLast': "yip"
+        #     }
+        # )
+
+        # req = c.post(
+        #     url_for('notes.fetch_all'),
+        #     content_type='application/json',
+        #     json={
+        #         'user': 'asdads'
+        #     }
+        # )
+
+        req = c.post(
+            url_for('notes.edit_note'),
             content_type='application/json',
             json={
-                'username': 'affafu',
-                'pfp': "newPFP",
-                'pfpLast': "yip"
+                'note': {
+                    'title': 'test from backend',
+                    'body': 'test from backend nga',
+                    'user': 'affafu',
+                    'id': 0
+                }
             }
         )
 
@@ -75,10 +96,10 @@ def create_app():
         #     }
         # )
 
-        # print(req.data)
-        # print(req.status)
-        print(req_2.data)
-        print(req_2.status)
+        print(req.data)
+        print(req.status)
+        # print(req_2.data)
+        # print(req_2.status)
 
     @click.command('up-db-ps')
     def update_pass():
