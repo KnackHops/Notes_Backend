@@ -1,6 +1,7 @@
 import click
 import json
 import requests
+from flask_scrypt import check_password_hash
 
 
 urlLogin = 'https://api.jsonbin.io/v3/b/60ee82b3c1256a01cb6ec53e'
@@ -50,16 +51,17 @@ def get_data(url, headers):
 
 def update_data(url, headers, data):
 
-    click.echo(f'meta-url: ${url}, meta-headers: ${headers}')
-    click.echo(f'data: ${data}')
+    click.echo(f'meta-url: {url}, meta-headers: {headers}')
+    click.echo(f'data: {data}')
     headers['X-Bin-Versioning'] = 'false'
 
     # req = requests.put(url, json=data, headers=headers)
     #
     # if req.status_code == 200:
-    #     return True
+    #     return '', 204
     # else:
-    #     return False
+    #     return {'errorMessage': 'error updating'}, 500
+    return '', 204
 
 
 def close_db(db, whichdb):
