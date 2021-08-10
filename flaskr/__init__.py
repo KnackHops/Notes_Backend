@@ -4,12 +4,19 @@ from flask import (
     Flask, url_for
 )
 from flaskr.user import update_db_password
-
+from flask_cors import (
+    CORS,
+)
 
 def create_app():
     # will work on login first
     app = Flask(__name__, instance_relative_config=True)
-
+    CORS(app, resource={
+        r'/user/*': {
+            'origins': 'http://127.0.0.1:5500/'
+            'methods'
+        }
+    })
     try:
         os.mkdir(app.instance_path)
     except OSError:
@@ -21,18 +28,19 @@ def create_app():
     for parent in (notes, user):
         app.register_blueprint(parent.bp)
 
+    app.add_url_rule('/', endpoint='index')
+
     with app.test_request_context():
         pass
         c = app.test_client()
 
-        # req = c.post(
-        #     url_for('user.login'),
-        #     content_type='application/json',
-        #     json={
-        #         'username': 'affafu',
-        #         'password': 'affafuPass'
-        #     }
-        # )
+        req = c.post(
+            url_for('user.profile_get'),
+            content_type='application/json',
+            json={
+                'username': 'affafu',
+            }
+        )
 
         # req_2 = c.post(
         #     url_for('user.profile_save'),
@@ -52,18 +60,18 @@ def create_app():
         #     }
         # )
 
-        req = c.post(
-            url_for('notes.edit_note'),
-            content_type='application/json',
-            json={
-                'note': {
-                    'title': 'test from backend',
-                    'body': 'test from backend nga',
-                    'user': 'affafu',
-                    'id': 0
-                }
-            }
-        )
+        # req = c.post(
+        #     url_for('notes.edit_note'),
+        #     content_type='application/json',
+        #     json={
+        #         'note': {
+        #             'title': 'test from backend',
+        #             'body': 'test from backend nga',
+        #             'user': 'affafu',
+        #             'id': 0
+        #         }
+        #     }
+        # )
 
         # req = c.post(
         #     url_for('user.register'),
@@ -75,7 +83,7 @@ def create_app():
         #         },
         #         'user_data': {
         #             'username': 'test',
-        #             'email': 'test@gmail.com',
+        #             'email': 'testin@gmail.com',
         #             'mobile': None,
         #             'pfp': 'default',
         #             'nickname': 'test me'
@@ -95,7 +103,7 @@ def create_app():
         #         }
         #     }
         # )
-
+        # #
         print(req.data)
         print(req.status)
         # print(req_2.data)
