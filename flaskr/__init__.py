@@ -4,6 +4,7 @@ from flask import (
     Flask, url_for
 )
 from flaskr.user import update_db_password
+from flaskr.notes import update_note_cmd
 from flask_cors import (
     CORS,
 )
@@ -34,13 +35,13 @@ def create_app():
         pass
         c = app.test_client()
 
-        req = c.post(
-            url_for('user.profile_get'),
-            content_type='application/json',
-            json={
-                'username': 'affafu',
-            }
-        )
+        # req = c.post(
+        #     url_for('user.profile_get'),
+        #     content_type='application/json',
+        #     json={
+        #         'username': 'affafu',
+        #     }
+        # )
 
         # req_2 = c.post(
         #     url_for('user.profile_save'),
@@ -104,8 +105,8 @@ def create_app():
         #     }
         # )
         # #
-        print(req.data)
-        print(req.status)
+        # print(req.data)
+        # print(req.status)
         # print(req_2.data)
         # print(req_2.status)
 
@@ -115,10 +116,14 @@ def create_app():
 
     @click.command('hello-world')
     def hello_world():
-
         click.echo('hi')
+
+    @click.command('up-no-cmd')
+    def up_no_note():
+        update_note_cmd()
 
     app.cli.add_command(update_pass)
     app.cli.add_command(hello_world)
+    app.cli.add_command(up_no_note)
 
     return app
