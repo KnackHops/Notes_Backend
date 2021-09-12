@@ -1,27 +1,53 @@
 import os
 import click
-from flask import (
-    Flask, url_for
+from flask import Flask
+from flaskr.db import init_db
+from flaskr.db import (
+    add_test, query_test, update_test
 )
-from flaskr.user import update_db_password
-from flaskr.notes import update_note_cmd
 from flask_cors import (
     CORS,
 )
+from flask_sqlalchemy import SQLAlchemy
+
+_sq = None
+_User = None
+_Login = None
+_ProfileUpdate = None
+_Note = None
+
 
 def create_app():
-    # will work on login first
     app = Flask(__name__, instance_relative_config=True)
-    CORS(app, resource={
+    CORS(app, resources={
         r'/user/*': {
-            'origins': 'http://127.0.0.1:5500/'
-            'methods'
+            'origins': '*'
         }
     })
+
     try:
         os.mkdir(app.instance_path)
     except OSError:
         pass
+
+    try:
+        os.mkdir('flaskr/temp')
+    except OSError:
+        pass
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temp/temp.db'
+
+    global _sq
+    global _User
+    global _Login
+    global _ProfileUpdate
+    global _Note
+
+    _sq = SQLAlchemy(app)
+    _User, _Login, _ProfileUpdate, _Note = init_db(_sq)
+
+    if os.path.isfile('temp/temp.db'):
+        _sq.create_all()
 
     from . import notes
     from . import user
@@ -110,20 +136,28 @@ def create_app():
         # print(req_2.data)
         # print(req_2.status)
 
-    @click.command('up-db-ps')
-    def update_pass():
-        update_db_password()
+    # @click.command('up-db-user')
+    # def update_pass():
+    #     update_db_users()
+    #
+    # @click.command('hello-world')
+    # def hello_world():
+    #     click.echo('hi')
+    #
+    # @click.command('up-no-cmd')
+    # def up_no_note():
+    #     update_note_cmd()
 
-    @click.command('hello-world')
-    def hello_world():
-        click.echo('hi')
+    @click.command('dbase-check')
+    def dbase_check():
+        pass
+        # add_test()
+        query_test()
+        # update_test()
 
-    @click.command('up-no-cmd')
-    def up_no_note():
-        update_note_cmd()
-
-    app.cli.add_command(update_pass)
-    app.cli.add_command(hello_world)
-    app.cli.add_command(up_no_note)
+    # app.cli.add_command(update_pass)
+    # app.cli.add_command(hello_world)
+    # app.cli.add_command(up_no_note)
+    app.cli.add_command(dbase_check)
 
     return app
