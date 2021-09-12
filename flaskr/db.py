@@ -1,76 +1,144 @@
 import click
-import json
-import requests
-from flask_scrypt import check_password_hash
+from datetime import date
 
+import sqlalchemy.exc
+from flask_scrypt import (
+    generate_random_salt, generate_password_hash, check_password_hash
+)
 
 urlLogin = 'https://api.jsonbin.io/v3/b/60ee82b3c1256a01cb6ec53e'
-urlUser = 'https://api.jsonbin.io/v3/b/60ee8281c1256a01cb6ec524'
+urlUser = 'https://api.jsonbin.io/v3/b/611a3a34e1b0604017b13140'
 urlNote = 'https://api.jsonbin.io/v3/b/60ee82530cd33f7437c7f1e0'
 urlProfile = 'https://api.jsonbin.io/v3/b/60fad285a263d14a297ac102'
 
 
-def get_all(which):
-    db = get_db(which)
-    resp = get_data(**db)
+def get_db_models(user=False, login=False, profile=False, note=False):
+    from flaskr import _sq
+    _db = []
 
-    return_var = {
-        'url_meta': db,
-        'data': json.loads(resp)
-    }
+    if user:
+        from flaskr import _User
+        _db.append(_User)
 
-    return return_var
+    if login:
+        from flaskr import _Login
+        _db.append(_Login)
 
+    if profile:
+        from flaskr import _ProfileUpdate
+        _db.append(_ProfileUpdate)
 
-def get_db(whichdb):
-    headers = {
-        'X-Master-Key': '$2b$10$BZ5hdRth9T2taHpARhKJK.AwqV/cLWEYozpt2iMBbtZE5S0YFo97i'
-    }
-    if whichdb == 'login':
-        url = urlLogin
-    elif whichdb == 'user':
-        url = urlUser
-    elif whichdb == 'profile':
-        url = urlProfile
-    elif whichdb == 'note':
-        url = urlNote
+    if note:
+        from flaskr import _Note
+        _db.append(_Note)
 
-    db = {
-        'url': url,
-        'headers': headers
-    }
-
-    return db
+    return _sq, _db
 
 
-def get_data(url, headers):
-    req = requests.get(url + '/latest', headers=headers)
+def init_db(db):
+    class User(db.Model):
+        __tablename__ = 'user'
 
-    return req.text
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.VARCHAR(155), unique=True, nullable=False)
+        email = db.Column(db.VARCHAR(155), unique=True, nullable=False)
+        mobile = db.Column(db.VARCHAR(12), nullable=True)
+        pfp = db.Column(db.Text, default="default")
+        nickname = db.Column(db.VARCHAR(15), nullable=True)
+
+        login = db.relationship('Login',
+                                lazy=True,
+                                backref=db.backref('user', lazy=True),
+                                uselist=False,
+                                foreign_keys='Login.userid')
+        login_username = db.relationship('Login', foreign_keys='Login.username', uselist=False)
+        profile_update = db.relationship('ProfileUpdate',
+                                         lazy=True,
+                                         backref=db.backref('user', lazy=True),
+                                         uselist=False)
+        note = db.relationship('Note',
+                               lazy=False,
+                               backref=db.backref('user', lazy=False))
+
+        def __repr__(self):
+            return '<User %r>' % self.username
+
+    class Login(db.Model):
+        __tablename__ = 'login'
+
+        userid = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+        username = db.Column(db.VARCHAR(155), db.ForeignKey('user.username'), nullable=False)
+        password = db.Column(db.VARBINARY, nullable=False)
+        salt = db.Column(db.VARBINARY, nullable=False)
+
+        def __repr__(self):
+            return '<Login %r>' % self.username
+
+    class ProfileUpdate(db.Model):
+        __tablename__ = 'profile_update'
+
+        userid = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
+        pfp_last = db.Column(db.DATE, default=date.today())
+        nick_last = db.Column(db.DATE, default=date.today())
+
+        def __repr__(self):
+            return '<ProfileUpdate %r>' % self.userid
+
+    class Note(db.Model):
+        __tablename__ = 'note'
+
+        id = db.Column(db.Integer, primary_key=True)
+        username = db.Column(db.Integer, db.ForeignKey('user.username'), nullable=False)
+        title = db.Column(db.Text, nullable=True)
+        body = db.Column(db.Text, nullable=True)
+        editable = db.Column(db.BOOLEAN, default=False)
+        locked = db.Column(db.BOOLEAN, default=False)
+        locked_password = db.Column(db.VARCHAR(4), nullable=True)
+        date_created = db.Column(db.DATE, default=date.today())
+        last_updated = db.Column(db.DATE, nullable=True)
+
+        def __repr__(self):
+            return '<Note %r>' % self.userid
+
+    return User, Login, ProfileUpdate, Note
 
 
-def update_data(url, headers, data):
+def add_test():
+    sq, [User, Login, ProfileUpdate] = get_db_models(user=True, login=True, profile=True)
 
-    click.echo(f'meta-url: {url}, meta-headers: {headers}')
-    click.echo(f'data: {data}')
-    headers['X-Bin-Versioning'] = 'false'
+    new_user = User(username='affafu', email='himalosc@gmail.com')
+    salt = generate_random_salt(128)
+    password = generate_password_hash('few', salt)
+    new_login = Login(username=new_user.username, password=password, salt=salt)
+    new_profile = ProfileUpdate()
+    new_user.login = new_login
+    new_user.profile_update = new_profile
+    sq.session.add(new_user)
 
-    # req = requests.put(url, json=data, headers=headers)
-    #
-    # if req.status_code == 200:
-    #     return '', 204
-    # else:
-    #     return {'errorMessage': 'error updating'}, 500
-    return '', 204
+    try:
+        sq.session.commit()
+    except sqlalchemy.exc.IntegrityError as e:
+        orig = str(e.orig)
+
+        if 'UNIQUE' in orig:
+            if 'email' in orig:
+                pass
+            else:
+                pass
 
 
-def close_db(db, whichdb):
-    if db is not None:
-        if whichdb == 'login':
-            db = 'loginDB'
-        elif whichdb == 'user':
-            db = 'userDB'
+def query_test():
+    sq, [Note] = get_db_models(note=True)
+
+    try:
+        note = Note.query.filter_by(userid=1).all()
+        if note:
+            click.echo("work?")
         else:
-            db = 'noteDB'
+            click.echo("nah")
+    except:
+        click.echo('err')
 
-    return db
+
+def update_test():
+    pass

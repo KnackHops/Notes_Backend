@@ -1,240 +1,247 @@
-import json
-
-import click
+from datetime import date
+import werkzeug.exceptions
 from flask import (
     Blueprint, request, make_response
 )
-from flaskr.db import (
-    get_all,
-)
+from flaskr.db import get_db_models
 from flask_cors import (
     CORS,
 )
-from flaskr.db import (
-    update_data,
-)
 
 bp = Blueprint('notes', __name__)
-CORS(bp, origins='http://127.0.0.1:5500/')
+CORS(bp, origins='*')
 
 
-@bp.route('/fetch-all', methods=('GET', 'POST'))
+@bp.route('/fetch-all')
 def fetch_all():
-    if request.method == 'POST':
-        note_db = get_all('note')
+    if request.method == 'GET':
+        sq, [Note] = get_db_models(note=True)
         error = None
         error_code = None
 
-        users_note = []
-
-        if 'data' not in note_db:
-            error = 'error fetching notes'
+        if not sq or not Note:
             error_code = 500
 
-        if error is None:
-            note_data = note_db['data']['record']
-            for note in note_data:
-                if request.json['user'] == note['user']:
-                    users_note.append(note)
+        if not error_code:
+            try:
+                _notes = Note.query.filter_by(username=str(request.args.get('username'))).all()
 
-            if error is None:
-                if len(users_note) == 0:
-                    resp = make_response(({'notes': 'None'}, 200))
+                if _notes:
+                    notes = []
+                    for note in _notes:
+                        date_created = date_extract(note.date_created)
+                        last_updated = None
+                        if note.last_updated:
+                            last_updated = date_extract(note.last_updated)
+
+                        notes.append({
+                            'id': note.id,
+                            'title': note.title,
+                            'body': note.body,
+                            'editable': note.editable,
+                            'locked': note.locked,
+                            'locked_password': note.locked_password,
+                            'username': note.username,
+                            'date_created': date_created,
+                            'last_updated': last_updated
+                        })
+
+                    sq.session.close()
+                    return make_response(({'notes': notes}, 200))
                 else:
-                    resp = make_response(({'notes': users_note}, 200))
+                    sq.session.close()
+                    return make_response(({'notes': None}, 200))
+            except:
+                error_code = 500
 
-                return resp
+        sq.session.close()
+        return before_return(error_code, error)
 
-        return {'errorMessage': error}, error_code
 
-
-@bp.route('/save', methods=('GET', 'POST'))
+@bp.route('/save-note', methods=('GET', 'POST'))
 def save_note():
     if request.method == 'POST':
-        note_db = get_all('note')
+        sq, [User, Note] = get_db_models(user=True, note=True)
         error = None
         error_code = None
 
-        if 'data' not in note_db:
-            error = 'error fetching data!'
+        if not sq or not Note:
             error_code = 500
 
-        if error is None:
-            note_data = note_db['data']['record']
-            note_meta = note_db['url_meta']
-            new_note_data = []
-            return_note_data = []
-            note_id = None
+        if not error_code:
+            try:
+                user = User.query.filter_by(
+                    username=str(request.json['username'])).first_or_404(description='User does not exist!')
 
-            for note in note_data:
-                if note['user'] == request.json['user']:
-                    return_note_data.append(note)
-                    if note_id is None:
-                        note_id = note['id']
-                    else:
-                        if note['id'] > note_id:
-                            note_id = note['id']
+                new_note = Note(
+                    title=request.json['title'],
+                    body=request.json['body'],
+                    editable=request.json['editable'],
+                    locked=request.json['locked'],
+                    locked_password=request.json['locked_password'],
+                    username=user.username
+                )
 
-                new_note_data.append(note)
+                sq.session.add(new_note)
+                sq.session.commit()
 
-            if note_id is None:
-                note_id = 0
+                date_created = date_extract(new_note.date_created)
 
-            new_note = request.json
-            new_note['id'] = note_id
-            new_note_data.append(new_note)
-            return_note_data.append(new_note)
-            update_data(**note_meta, data=new_note_data)
+                note = {
+                    'id': new_note.id,
+                    'username': new_note.username,
+                    'title': new_note.title,
+                    'body': new_note.body,
+                    'editable': new_note.editable,
+                    'locked': new_note.locked,
+                    'locked_password': new_note.locked_password,
+                    'date_created': date_created,
+                    'last_updated': new_note.last_updated
+                }
 
-            return make_response(({'id': note_id}, 200))
-        else:
-            return {'errorMessage': error}, error_code
+                sq.session.close()
+                return make_response((note, 200))
+            except werkzeug.exceptions.NotFound as e:
+                error_code = 404
+                error = e.description
 
-
-def actual_edit():
-    note_db = get_all('note')
-    error = None
-    error_code = None
-
-    if 'data' not in note_db:
-        error = 'error fetching data!'
-        error_code = 500
-
-    if error is None:
-        note_data = note_db['data']['record']
-        note_meta = note_db['url_meta']
-        new_note_list = []
-
-        for note in note_data:
-            new_note = note
-            if note['user'] == request.json['user']:
-                if note['id'] == request.json['id']:
-                    if not note['title'] == request.json['title']:
-                        new_note['title'] = request.json['title']
-                    if not note['body'] == request.json['body']:
-                        new_note['body'] = request.json['note']['body']
-
-                    new_note['lastUpdated'] = request.json['lastUpdated']
-
-            new_note_list.append(new_note)
-
-        update_status = update_data(**note_meta, data=new_note_list)
-
-        if 'errorMessage' in update_status:
-            error = update_status['errorMessage']
-            error_code = update_status['error_code']
-        else:
-            return '', 204
-
-    return {'errorMessage': error}, error_code
-
-
-def actual_edit_locked():
-    note_db = get_all('note')
-    error = None
-    error_code = None
-
-    if 'data' not in note_db:
-        error = 'error fetching data!'
-        error_code = 500
-
-    if error is not None:
-        note_data = note_db['data']['record']
-        note_meta = note_db['url_meta']
-
-        new_note_list = []
-        for note in note_data:
-            new_note = note
-            if note['user'] == request.method['user']:
-                if note['id'] == request.method['id']:
-                    if not note['locked'] == request.method['locked']:
-                        new_note['locked'] = request.method['locked']
-                        new_note['lockedPass'] = request.method['lockedPass']
-                    if not note['editable'] == request.method['editable']:
-                        new_note['editable'] = request.method['editable']
-
-            new_note_list.append(new_note)
-
-        update_status = update_data(**note_meta, data=new_note_list)
-
-        if 'errorMessage' in update_status:
-            error = update_status['errorMessage']
-            error_code = update_status['error_code']
-        else:
-            return '', 204
-
-    return {'errorMessage': error}, error_code
+        sq.session.close()
+        return before_return(error_code, error)
 
 
 @bp.route('/edit', methods=('GET', 'PUT'))
-def edit_note():
+def edit():
     if request.method == 'PUT':
-        resp = actual_edit()
-        return resp
+        sq, [Note] = get_db_models(note=True)
+        error_code = None
+        error = None
+
+        if not sq or not Note:
+            error_code = 500
+
+        if not error_code:
+            try:
+                note = Note.query.filter_by(
+                    id=request.json['id'],
+                    username=request.json['username']).first_or_404(description="Note doesn't exists")
+
+                if 'title' in request.json:
+                    note.title = request.json['title']
+                if 'body' in request.json:
+                    note.body = request.json['body']
+                note.last_updated = date.today()
+
+                sq.session.commit()
+                sq.session.close()
+                return '', 204
+            except werkzeug.exceptions.NotFound as e:
+                error_code = 404
+                error = e.description
+
+        sq.session.close()
+        return before_return(error_code, error)
 
 
 @bp.route('/update-edit-lock', methods=('GET', 'PUT'))
-def editable_locked():
+def update_edit_lock():
     if request.method == 'PUT':
-        resp = actual_edit_locked()
-        return resp
+        sq, [Note] = get_db_models(note=True)
+        error_code = None
+        error = None
+
+        if not sq or not Note:
+            error_code = 500
+
+        if not error_code:
+            try:
+                note = Note.query.filter_by(
+                    id=request.json['id'],
+                    username=request.json['username']).first_or_404(description="Note doesn't exists")
+
+                if note.locked == request.json['locked'] and note.locked_password == request.json['locked_password'] and note.editable == request.json['editable']:
+                    error_code = 400
+                    error = 'No change detected'
+                else:
+                    if not note.locked == request.json['locked']:
+                        note.locked = request.json['locked']
+                    if not note.locked_password == request.json['locked_password']:
+                        locked_password = request.json['locked_password']
+                        if note.locked:
+                            if locked_password:
+                                if len(request.json['locked_password']) == 4:
+                                    note.locked_password = locked_password
+                                else:
+                                    raise Exception('locked_password is not 4 characters')
+                            else:
+                                raise Exception('locked_password is empty')
+                        else:
+                            locked_password = None
+                            note.locked_password = locked_password
+                    if not note.editable == request.json['editable']:
+                        note.editable = request.json['editable']
+
+                    sq.session.commit()
+                    sq.session.close()
+                    return '', 204
+            except werkzeug.exceptions.NotFound as e:
+                error_code = 404
+                error = e.description
+            except Exception as e:
+                error_code = 400
+                error = repr(e)
+            except:
+                error_code = 500
+
+        sq.session.close()
+        return before_return(error_code, error)
 
 
 @bp.route('/delete', methods=('GET', 'DELETE'))
-def delete_note():
+def delete():
     if request.method == 'DELETE':
-        note_db = get_all('note')
-        id = int(request.args.get('id'))
-        user = request.args.get('user')
-        click.echo(type(id))
-        click.echo(type(user))
-        error = None
+        sq, [Note] = get_db_models(note=True)
         error_code = None
+        error = None
 
-        if 'data' not in note_db:
-            error = 'error fetching data!'
+        if not sq or not Note:
             error_code = 500
 
-        if error is None:
-            note_data = note_db['data']['record']
-            note_meta = note_db['url_meta']
+        if not error_code:
+            try:
+                note = Note.query.filter_by(
+                    id=request.args.get('id'),
+                    username=request.args.get('username')).first_or_404(description='Note not found!')
 
-            new_note_data = []
-            for note in note_data:
-                if not note['user'] == user:
-                    new_note_data.append(note)
-                else:
-                    if not note['id'] == id:
-                        new_note_data.append(note)
+                sq.session.delete(note)
+                sq.session.commit()
+                sq.session.close()
+                return '', 204
+            except werkzeug.exceptions.NotFound as e:
+                error_code = 404
+                error = e.description
+            except:
+                error_code = 500
 
-            update_data(**note_meta, data=new_note_data)
-
-            return '', 204
-
-        else:
-            return {'errorMessage': error}, error_code
-
-
-@bp.route('/')
-def index():
-    return make_response(({"ya": "hallo"}, 200))
-
+        return before_return(error_code, error)
 
 @bp.after_request
 def after_request_func(response):
     response.headers['Content-Type'] = 'application/json'
     return response
 
-def update_note_cmd():
-    pass
-    # note_db = get_all('note')
-    # note_meta = note_db['url_meta']
-    # note_data = note_db['data']['record']
-    #
-    # new_note_list = []
-    # for note in note_data:
-    #     new_note = note
-    #     new_note['body'] = json.dumps(new_note['body'])
-    #     new_note_list.append(new_note)
-    #
-    # update_data(**note_meta, data=new_note_list)
+
+def before_return(error_code, error):
+    if error_code:
+        if error_code == 500:
+            error = 'Internal Server Error'
+        return {'errorMessage': error}, error_code
+
+
+def date_extract(_date):
+    date_extracted = _date.timetuple()
+
+    return {
+        'year': date_extracted[0],
+        'month': date_extracted[1],
+        'day': date_extracted[2]
+    }
