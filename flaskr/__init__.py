@@ -2,9 +2,9 @@ import os
 import click
 from flask import Flask
 from flaskr.db import init_db
-from flaskr.db import (
-    add_test, query_test, update_test
-)
+# from flaskr.db import (
+#     add_test, query_test, update_test
+# )
 from flask_cors import (
     CORS,
 )
@@ -34,9 +34,10 @@ def create_app():
         os.mkdir('flaskr/temp')
     except OSError:
         pass
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temp/temp.db'
-
+    # for local database
+    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temp/temp.db'
+    # for server deployed database
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:himalosc@localhost/notesilly'
     global _sq
     global _User
     global _Login
@@ -46,8 +47,10 @@ def create_app():
     _sq = SQLAlchemy(app)
     _User, _Login, _ProfileUpdate, _Note = init_db(_sq)
 
-    if os.path.isfile('temp/temp.db'):
-        _sq.create_all()
+    # test local
+    # if os.path.isfile('temp/temp.db'):
+    #     _sq.create_all()
+    # _sq.create_all()
 
     from . import notes
     from . import user
@@ -152,12 +155,12 @@ def create_app():
     def dbase_check():
         pass
         # add_test()
-        query_test()
+        # query_test()
         # update_test()
 
     # app.cli.add_command(update_pass)
     # app.cli.add_command(hello_world)
     # app.cli.add_command(up_no_note)
-    app.cli.add_command(dbase_check)
+    # app.cli.add_command(dbase_check)
 
     return app
