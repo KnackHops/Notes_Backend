@@ -2,9 +2,9 @@ import os
 import click
 from flask import Flask
 from flaskr.db import init_db
-from flaskr.db import (
-    add_test, query_test, update_test
-)
+# from flaskr.db import (
+#     add_test, query_test, update_test
+# )
 from flask_cors import (
     CORS,
 )
@@ -18,24 +18,34 @@ _Note = None
 
 
 def create_app():
-    app = Flask(__name__, instance_relative_config=True)
+    if os.environ.get('FLASK_ENV') == 'development':
+        app = Flask(__name__, instance_relative_config=True)
+        if os.environ.get('WHICH_DB') == 'localhost':
+            from instance.config import DevelopmentConfigLocalhost
+            app.config.from_object(DevelopmentConfigLocalhost())
+        else:
+            from instance.config import DevelopmentConfigSQLite
+            app.config.from_object(DevelopmentConfigSQLite())
+
+            try:
+                os.mkdir('flaskr/temp')
+            except OSError:
+                pass
+
+        try:
+            os.mkdir(app.instance_path)
+        except OSError:
+            pass
+    else:
+        from config import Config
+        app = Flask(__name__, instance_relative_config=False)
+        app.config.from_object(Config())
+
     CORS(app, resources={
         r'/user/*': {
             'origins': '*'
         }
     })
-
-    try:
-        os.mkdir(app.instance_path)
-    except OSError:
-        pass
-
-    try:
-        os.mkdir('flaskr/temp')
-    except OSError:
-        pass
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temp/temp.db'
 
     global _sq
     global _User
@@ -46,7 +56,7 @@ def create_app():
     _sq = SQLAlchemy(app)
     _User, _Login, _ProfileUpdate, _Note = init_db(_sq)
 
-    if os.path.isfile('temp/temp.db'):
+    if os.path.isfile('temp/temp.db') and os.environ.get('FLASK_ENV') == 'development':
         _sq.create_all()
 
     from . import notes
@@ -56,85 +66,6 @@ def create_app():
         app.register_blueprint(parent.bp)
 
     app.add_url_rule('/', endpoint='index')
-
-    with app.test_request_context():
-        pass
-        c = app.test_client()
-
-        # req = c.post(
-        #     url_for('user.profile_get'),
-        #     content_type='application/json',
-        #     json={
-        #         'username': 'affafu',
-        #     }
-        # )
-
-        # req_2 = c.post(
-        #     url_for('user.profile_save'),
-        #     content_type='application/json',
-        #     json={
-        #         'username': 'affafu',
-        #         'pfp': "newPFP",
-        #         'pfpLast': "yip"
-        #     }
-        # )
-
-        # req = c.post(
-        #     url_for('notes.fetch_all'),
-        #     content_type='application/json',
-        #     json={
-        #         'user': 'asdads'
-        #     }
-        # )
-
-        # req = c.post(
-        #     url_for('notes.edit_note'),
-        #     content_type='application/json',
-        #     json={
-        #         'note': {
-        #             'title': 'test from backend',
-        #             'body': 'test from backend nga',
-        #             'user': 'affafu',
-        #             'id': 0
-        #         }
-        #     }
-        # )
-
-        # req = c.post(
-        #     url_for('user.register'),
-        #     content_type='application/json',
-        #     json={
-        #         'login_data': {
-        #             'username': 'test',
-        #             'password': 'testPass'
-        #         },
-        #         'user_data': {
-        #             'username': 'test',
-        #             'email': 'testin@gmail.com',
-        #             'mobile': None,
-        #             'pfp': 'default',
-        #             'nickname': 'test me'
-        #         },
-        #         'profile_data': {
-        #             'username': 'test',
-        #             'pfpLast': {
-        #                 'month': 12,
-        #                 'day': 5,
-        #                 'year': 2020
-        #             },
-        #             'nickLast': {
-        #                 'month': 12,
-        #                 'day': 5,
-        #                 'year': 2020
-        #             }
-        #         }
-        #     }
-        # )
-        # #
-        # print(req.data)
-        # print(req.status)
-        # print(req_2.data)
-        # print(req_2.status)
 
     # @click.command('up-db-user')
     # def update_pass():
@@ -152,12 +83,12 @@ def create_app():
     def dbase_check():
         pass
         # add_test()
-        query_test()
+        # query_test()
         # update_test()
 
     # app.cli.add_command(update_pass)
     # app.cli.add_command(hello_world)
     # app.cli.add_command(up_no_note)
-    app.cli.add_command(dbase_check)
+    # app.cli.add_command(dbase_check)
 
     return app

@@ -1,15 +1,9 @@
 import click
 from datetime import date
-
-import sqlalchemy.exc
-from flask_scrypt import (
-    generate_random_salt, generate_password_hash, check_password_hash
-)
-
-urlLogin = 'https://api.jsonbin.io/v3/b/60ee82b3c1256a01cb6ec53e'
-urlUser = 'https://api.jsonbin.io/v3/b/611a3a34e1b0604017b13140'
-urlNote = 'https://api.jsonbin.io/v3/b/60ee82530cd33f7437c7f1e0'
-urlProfile = 'https://api.jsonbin.io/v3/b/60fad285a263d14a297ac102'
+# for checking
+# from flask_scrypt import (
+#     generate_random_salt, generate_password_hash, check_password_hash
+# )
 
 
 def get_db_models(user=False, login=False, profile=False, note=False):
@@ -68,8 +62,8 @@ def init_db(db):
 
         userid = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
         username = db.Column(db.VARCHAR(155), db.ForeignKey('user.username'), nullable=False)
-        password = db.Column(db.VARBINARY, nullable=False)
-        salt = db.Column(db.VARBINARY, nullable=False)
+        password = db.Column(db.LargeBinary, nullable=False)
+        salt = db.Column(db.LargeBinary, nullable=False)
 
         def __repr__(self):
             return '<Login %r>' % self.username
@@ -88,7 +82,7 @@ def init_db(db):
         __tablename__ = 'note'
 
         id = db.Column(db.Integer, primary_key=True)
-        username = db.Column(db.Integer, db.ForeignKey('user.username'), nullable=False)
+        username = db.Column(db.VARCHAR(155), db.ForeignKey('user.username'), nullable=False)
         title = db.Column(db.Text, nullable=True)
         body = db.Column(db.Text, nullable=True)
         editable = db.Column(db.BOOLEAN, default=False)
@@ -102,42 +96,42 @@ def init_db(db):
 
     return User, Login, ProfileUpdate, Note
 
-
-def add_test():
-    sq, [User, Login, ProfileUpdate] = get_db_models(user=True, login=True, profile=True)
-
-    new_user = User(username='affafu', email='himalosc@gmail.com')
-    salt = generate_random_salt(128)
-    password = generate_password_hash('few', salt)
-    new_login = Login(username=new_user.username, password=password, salt=salt)
-    new_profile = ProfileUpdate()
-    new_user.login = new_login
-    new_user.profile_update = new_profile
-    sq.session.add(new_user)
-
-    try:
-        sq.session.commit()
-    except sqlalchemy.exc.IntegrityError as e:
-        orig = str(e.orig)
-
-        if 'UNIQUE' in orig:
-            if 'email' in orig:
-                pass
-            else:
-                pass
-
-
-def query_test():
-    sq, [Note] = get_db_models(note=True)
-
-    try:
-        note = Note.query.filter_by(userid=1).all()
-        if note:
-            click.echo("work?")
-        else:
-            click.echo("nah")
-    except:
-        click.echo('err')
+# for checking
+# def add_test():
+#     sq, [User, Login, ProfileUpdate] = get_db_models(user=True, login=True, profile=True)
+#
+#     new_user = User(username='affafu', email='himalosc@gmail.com')
+#     salt = generate_random_salt(128)
+#     password = generate_password_hash('few', salt)
+#     new_login = Login(username=new_user.username, password=password, salt=salt)
+#     new_profile = ProfileUpdate()
+#     new_user.login = new_login
+#     new_user.profile_update = new_profile
+#     sq.session.add(new_user)
+#
+#     try:
+#         sq.session.commit()
+#     except sqlalchemy.exc.IntegrityError as e:
+#         orig = str(e.orig)
+#
+#         if 'UNIQUE' in orig:
+#             if 'email' in orig:
+#                 pass
+#             else:
+#                 pass
+#
+#
+# def query_test():
+#     sq, [Note] = get_db_models(note=True)
+#
+#     try:
+#         note = Note.query.filter_by(userid=1).all()
+#         if note:
+#             click.echo("work?")
+#         else:
+#             click.echo("nah")
+#     except:
+#         click.echo('err')
 
 
 def update_test():
