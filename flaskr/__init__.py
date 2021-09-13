@@ -9,6 +9,8 @@ from flask_cors import (
     CORS,
 )
 from flask_sqlalchemy import SQLAlchemy
+from instance.config import DevelopmentConfig
+from instance.config import ProductionConfig
 
 _sq = None
 _User = None
@@ -34,10 +36,12 @@ def create_app():
         os.mkdir('flaskr/temp')
     except OSError:
         pass
-    # for local database
-    # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///temp/temp.db'
-    # for server deployed database
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql+psycopg2://postgres:himalosc@localhost/notesilly'
+
+    if os.environ.get('FLASK_ENV') == 'development':
+        app.config.from_object(DevelopmentConfig())
+    elif os.environ.get('FLASK_ENV') == 'production':
+        app.config.from_object(ProductionConfig())
+
     global _sq
     global _User
     global _Login
@@ -48,8 +52,8 @@ def create_app():
     _User, _Login, _ProfileUpdate, _Note = init_db(_sq)
 
     # test local
-    # if os.path.isfile('temp/temp.db'):
-    #     _sq.create_all()
+    if os.path.isfile('temp/temp.db') and os.environ.get('FLASK_ENV') == 'development':
+        _sq.create_all()
     # _sq.create_all()
 
     from . import notes

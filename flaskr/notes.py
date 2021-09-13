@@ -224,6 +224,7 @@ def delete():
 
         return before_return(error_code, error)
 
+
 @bp.after_request
 def after_request_func(response):
     response.headers['Content-Type'] = 'application/json'

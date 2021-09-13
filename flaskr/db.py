@@ -1,11 +1,10 @@
 import click
 from datetime import date
-
-import sqlalchemy.exc
 # for checking
 # from flask_scrypt import (
 #     generate_random_salt, generate_password_hash, check_password_hash
 # )
+
 
 def get_db_models(user=False, login=False, profile=False, note=False):
     from flaskr import _sq
