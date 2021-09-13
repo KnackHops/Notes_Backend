@@ -1,1 +1,1 @@
-web: waitress-serve --bind 0.0.0.0 "flaskr:create_app"
+web: waitress-serve --call "flaskr:create_app"

@@ -58,8 +58,6 @@ def create_app():
 
     if os.path.isfile('temp/temp.db') and os.environ.get('FLASK_ENV') == 'development':
         _sq.create_all()
-    if os.environ.get('FLASK_ENV') == 'production':
-        _sq.create_all()
 
     from . import notes
     from . import user
