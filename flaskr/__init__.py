@@ -5,6 +5,7 @@ from flaskr.db import init_db
 # from flaskr.db import (
 #     add_test, query_test, update_test
 # )
+from flaskr.config import Config
 from flask_cors import (
     CORS,
 )
@@ -18,28 +19,30 @@ _Note = None
 
 
 def create_app():
-    if os.environ.get('FLASK_ENV') == 'development':
-        app = Flask(__name__, instance_relative_config=True)
-        if os.environ.get('WHICH_DB') == 'localhost':
-            from instance.config import DevelopmentConfigLocalhost
-            app.config.from_object(DevelopmentConfigLocalhost())
-        else:
-            from instance.config import DevelopmentConfigSQLite
-            app.config.from_object(DevelopmentConfigSQLite())
+    # if os.environ.get('FLASK_ENV') == 'development':
+    #     app = Flask(__name__, instance_relative_config=True)
+    #     if os.environ.get('WHICH_DB') == 'localhost':
+    #         from instance.config import DevelopmentConfigLocalhost
+    #         app.config.from_object(DevelopmentConfigLocalhost())
+    #     else:
+    #         from instance.config import DevelopmentConfigSQLite
+    #         app.config.from_object(DevelopmentConfigSQLite())
+    #
+    #         try:
+    #             os.mkdir('flaskr/temp')
+    #         except OSError:
+    #             pass
+    #
+    #     try:
+    #         os.mkdir(app.instance_path)
+    #     except OSError:
+    #         pass
+    # else:
+    #     app = Flask(__name__, instance_relative_config=False)
+    #     app.config.from_object(Config())
 
-            try:
-                os.mkdir('flaskr/temp')
-            except OSError:
-                pass
-
-        try:
-            os.mkdir(app.instance_path)
-        except OSError:
-            pass
-    else:
-        from config import Config
-        app = Flask(__name__, instance_relative_config=False)
-        app.config.from_object(Config())
+    app = Flask(__name__, instance_relative_config=False)
+    app.config.from_object(Config())
 
     CORS(app, resources={
         r'/user/*': {
@@ -56,8 +59,8 @@ def create_app():
     _sq = SQLAlchemy(app)
     _User, _Login, _ProfileUpdate, _Note = init_db(_sq)
 
-    if os.path.isfile('temp/temp.db') and os.environ.get('FLASK_ENV') == 'development':
-        _sq.create_all()
+    # if os.path.isfile('temp/temp.db') and os.environ.get('FLASK_ENV') == 'development':
+    #     _sq.create_all()
 
     from . import notes
     from . import user
