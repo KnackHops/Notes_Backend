@@ -11,6 +11,7 @@ from flask_cors import (
 )
 from flask_sqlalchemy import SQLAlchemy
 
+_app = None
 _sq = None
 _User = None
 _Login = None
@@ -97,11 +98,11 @@ def create_app():
     # app.cli.add_command(hello_world)
     # app.cli.add_command(up_no_note)
     # app.cli.add_command(dbase_check)
-
+    global _app
+    _app = app
     return app
 
 if __name__ == '__main__':
-    from flaskr import app
 
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    _app.run(host='0.0.0.0', port=port)
