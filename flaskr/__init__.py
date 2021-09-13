@@ -70,6 +70,10 @@ def create_app():
 
     app.add_url_rule('/', endpoint='index')
 
+    @app.route('/')
+    def index():
+        return '<h1> Hello! <h1>'
+
     # @click.command('up-db-user')
     # def update_pass():
     #     update_db_users()
